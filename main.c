@@ -1,15 +1,33 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <alsa/asoundlib.h>
 
 #include "rotaryencoder/rotaryencoder.h"
 
 struct encoder encoder;
+
 static char card[64] = "default";
+snd_mixer_t *handle= NULL;
+
+void sig_handler(int signo)
+{
+    if(signo == SIGINT)
+    {
+        printf("SIGINT recieved\n");
+        if(handle != NULL)
+            snd_mixer_close(handle);
+        exit(1);
+    }
+}
 
 void main()
 {
     printf("Starting...\n");
+    
+    if(signal(SIGINT, sig_handler) == SIG_ERR)
+        printf("\n Can't catch SIGINT. \n");
+
     wiringPiSetup();
     piHiPri(99);
     struct encoder *encoder = setupencoder(7,1);
