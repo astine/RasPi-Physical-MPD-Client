@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <math.h>
 #include <alsa/asoundlib.h>
 
 #include "rotaryencoder/rotaryencoder.h"
+#include "lcd/lcd.h"
 
 struct encoder encoder;
 
@@ -21,6 +23,24 @@ void sig_handler(int signo)
     }
 }
 
+void print_vol_bar(snd_mixer_elem_t *elem,struct lcd lcd)
+{
+    long min, max, vol;
+    snd_mixer_selem_get_playback_volume_range(elem, &min, &max);
+    snd_mixer_selem_get_playback_volume(elem,0,&vol);
+
+    int volp = rint(((double)(vol - min) / (double)(max - min)) * 16);
+    char volbar[LCD_WIDTH];
+
+    int idx = 0;
+    for(idx;idx<volp;idx++)
+        volbar[idx] = '=';
+    for(idx;idx<LCD_WIDTH;idx++)
+        volbar[idx] = '_';
+
+    lcd_string(lcd,volbar,2);
+}
+
 void main()
 {
     printf("Starting...\n");
@@ -33,6 +53,8 @@ void main()
     struct encoder *encoder = setupencoder(7,1);
     if(encoder == NULL) { exit(1); }
     int oldvalue = encoder->value;
+
+    struct lcd lcd = lcd_init(6, 5, 4, 0, 2, 3);
 
     snd_mixer_t *handle= NULL;
     snd_mixer_elem_t *elem;
@@ -74,6 +96,8 @@ void main()
         exit(1);
     }
 
+    print_vol_bar(elem,lcd);
+
     while(1)
     {
         if(oldvalue != encoder->value)
@@ -84,8 +108,9 @@ void main()
             {
                 long orig;
                 snd_mixer_selem_get_playback_dB(elem,chn,&orig);
-                snd_mixer_selem_set_playback_dB(elem,chn,orig + (change * 2),0);
+                snd_mixer_selem_set_playback_dB(elem,chn,orig + (change * 6),0);
             }
+            print_vol_bar(elem,lcd);
             oldvalue = encoder->value;
         }
         delay(10);
