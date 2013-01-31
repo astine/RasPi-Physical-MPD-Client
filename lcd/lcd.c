@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <wiringPi.h>
 
 #include "lcd.h"
@@ -58,9 +59,9 @@ void lcd_string(struct lcd lcd, char *message,int line)
         printf("error: bad line number: %i", line);
 
     int idx = 0;
-    for(idx=0;message[idx] != '\0' && idx < LCD_WIDTH; idx++)
+    for(;message[idx] != '\0' && idx < LCD_WIDTH; idx++)
         lcd_byte(lcd, message[idx],LCD_CHR);
-    for(idx;idx < LCD_WIDTH; idx++)
+    for(;idx < LCD_WIDTH; idx++)
         lcd_byte(lcd, ' ',LCD_CHR);
 }
 
@@ -68,7 +69,7 @@ void lcd_wrapped_string(struct lcd lcd, char *message)
 {
     lcd_byte(lcd, LCD_LINE_1, LCD_CMD);
     int idx = 0;
-    for(idx=0;idx<LCD_WIDTH-1 && message[idx] != '\n' && message[idx] != '\0';idx++)
+    for(;idx<LCD_WIDTH-1 && message[idx] != '\n' && message[idx] != '\0';idx++)
         lcd_byte(lcd, message[idx],LCD_CHR);
 
     if(idx==LCD_WIDTH-1)
@@ -90,13 +91,13 @@ void lcd_marquee (struct lcd lcd, char *message, int line)
     }
 
     int idx = 0;
-    for(idx; idx <= overflow; idx++)
+    for(; idx <= overflow; idx++)
     {
         lcd_string(lcd, message+idx,line);
         usleep(350000);
     }
     usleep(500000);
-    for(idx; idx >= 0; idx--)
+    for(--idx; idx >= 0; idx--)
     {
         lcd_string(lcd, message+idx,line);
         usleep(350000);
