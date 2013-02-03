@@ -59,14 +59,14 @@ struct lcd
 void lcd_byte(struct lcd lcd, char byte, int mode);
 
 //Write a string to an LCD
-void lcd_string(struct lcd lcd, char *message,int line);
+void lcd_string(struct lcd lcd, const char *message,int line);
 
 //Write a string to an LCD, wrapping it to the next line if it is too long or 
 //contains a newline
-void lcd_wrapped_string(struct lcd lcd, char *message);
+void lcd_wrapped_string(struct lcd lcd, const char *message);
 
 //Write a string to an LCD, causing it to scroll if it is too long
-void lcd_marquee (struct lcd lcd, char *message, int line);
+void lcd_marquee (struct lcd lcd, const char *message, int line);
 
 //Register a new LCD with the pins given and initialize the device
 struct lcd lcd_init(int pin_RS, int pin_E, int pin_D4, int pin_D5, int pin_D6, int pin_D7);

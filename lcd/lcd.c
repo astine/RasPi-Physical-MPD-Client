@@ -49,7 +49,7 @@ void lcd_byte(struct lcd lcd, char byte, int mode)
     usleep(E_DELAY);
 }
 
-void lcd_string(struct lcd lcd, char *message,int line)
+void lcd_string(struct lcd lcd, const char *message, int line)
 {
     if (line == 1)
         lcd_byte(lcd, LCD_LINE_1, LCD_CMD);
@@ -65,7 +65,7 @@ void lcd_string(struct lcd lcd, char *message,int line)
         lcd_byte(lcd, ' ',LCD_CHR);
 }
 
-void lcd_wrapped_string(struct lcd lcd, char *message)
+void lcd_wrapped_string(struct lcd lcd, const char *message)
 {
     lcd_byte(lcd, LCD_LINE_1, LCD_CMD);
     int idx = 0;
@@ -81,7 +81,7 @@ void lcd_wrapped_string(struct lcd lcd, char *message)
         lcd_string(lcd, message+idx, 2);
 }
 
-void lcd_marquee (struct lcd lcd, char *message, int line)
+void lcd_marquee (struct lcd lcd, const char *message, int line)
 {
     int overflow = strlen(message) - LCD_WIDTH;
     if(overflow <= 0)
