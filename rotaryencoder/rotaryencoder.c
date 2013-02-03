@@ -11,7 +11,7 @@ int numberofencoders = 0;
 void updateEncoders()
 {
     struct encoder *encoder = encoders;
-    for (encoder; encoder < encoders + numberofencoders; encoder++)
+    for (; encoder < encoders + numberofencoders; encoder++)
     {
         int MSB = digitalRead(encoder->pin_a);
         int LSB = digitalRead(encoder->pin_b);
