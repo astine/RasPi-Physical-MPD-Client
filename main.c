@@ -10,6 +10,7 @@
 #include "rotaryencoder/rotaryencoder.h"
 #include "button/button.h"
 #include "lcd/lcd.h"
+#include "led/led.h"
 
 #define MPD_LOCK 0
 
@@ -211,6 +212,36 @@ void mute_unmute_callback(int state)
 	}
 }
 
+void set_play_indicator(struct led play_indicator)
+{
+    piLock(MPD_LOCK);
+    struct mpd_status *status = mpd_run_status(connection);
+    switch (mpd_status_get_state(status))
+    {
+    case MPD_STATE_PLAY:
+        light_led_color(play_indicator, LED_COLOR_GREEN);
+        break;
+    case MPD_STATE_PAUSE:
+        light_led_color(play_indicator, LED_COLOR_YELLOW);
+        break;
+    case MPD_STATE_STOP:
+    default:
+        light_led_color(play_indicator, LED_COLOR_RED);
+    }
+    mpd_status_free(status);
+    piUnlock(MPD_LOCK);
+}
+
+void set_mute_indicator(struct led mute_indicator)
+{
+    int ival;
+    snd_mixer_selem_get_playback_switch(elem, 0, &ival);
+    if (ival == 1)
+        light_led_color(mute_indicator, LED_COLOR_RED);
+    else
+        light_led_color(mute_indicator, LED_COLOR_GREEN);
+}
+
 int main()
 {
     printf("Starting...\n");
@@ -232,6 +263,9 @@ int main()
     struct button *button = setup_button(14, play_pause_callback);
     if(button == NULL) { exit(1); }
     setup_button(1, mute_unmute_callback);
+
+    struct led play_indicator = led_init(6,10,11);
+    struct led mute_indicator = led_init(4,5,-1);
 
     snd_mixer_selem_id_t *sid;
     snd_mixer_selem_id_alloca(&sid);
@@ -272,7 +306,6 @@ int main()
     }
 
     long button_timer = time(NULL);
-    print_vol_bar(elem,lcd);
 
     while(1)
     {
@@ -287,7 +320,6 @@ int main()
                 snd_mixer_selem_get_playback_dB(elem,chn,&orig);
                 snd_mixer_selem_set_playback_dB(elem,chn,orig + (change * 6),0);
             }
-            print_vol_bar(elem,lcd);
             oldvalue = vol_selector->value;
         }
 
@@ -316,8 +348,11 @@ int main()
 		button_timer = time(NULL);
 	    }
 
+        print_vol_bar(elem,lcd);
 	print_song_title(lcd);
-        delay(10);
+        set_play_indicator(play_indicator);
+        set_mute_indicator(mute_indicator);
+        delay(25);
     }
 
     if(sid != NULL)
