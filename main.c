@@ -97,12 +97,13 @@ void print_song_title(struct lcd lcd)
     if (status == NULL)
 	printErrorAndExit(connection);
 
-    struct mpd_song *song = mpd_run_current_song(connection);
-    
-    //If there is no current song, find first in playlist
-    if(song == NULL || mpd_status_get_state(status) == MPD_STATE_STOP)
+    //Current song is either playing song, or one player remembers
+    struct mpd_song *song;
+    if(mpd_status_get_state(status) == MPD_STATE_STOP)
         song = mpd_run_get_queue_song_pos(connection, current_song);
-
+    else
+        song = mpd_run_current_song(connection);
+    
     const char *title;
     if(song != NULL)
         title = mpd_song_get_tag(song, MPD_TAG_TITLE, 0);
