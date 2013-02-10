@@ -14,6 +14,8 @@
 
 #define MPD_LOCK 0
 
+#define exp10(x) (exp((x) * log(10)))
+
 struct encoder encoder;
 
 struct mpd_connection *connection = NULL;
@@ -37,17 +39,61 @@ void sig_handler(int signo)
     }
 }
 
+//get the volume as a floating point number 0..1
+double get_normalized_volume(snd_mixer_elem_t *elem)
+{
+    long max, min, value;
+    int err;
+
+    err = snd_mixer_selem_get_playback_dB_range(elem, &min, &max);
+    if(err < 0)
+    {
+        printf("Error getting volume\n");
+	return 0;
+    }
+    snd_mixer_selem_get_playback_dB(elem,0,&value);
+    if(err < 0)
+    {
+        printf("Error getting volume\n");
+	return 0;
+    }
+    
+    //Perceived 'loudness' does not scale linearly with the actual decible level
+    //it scales logarithmically
+    return exp10((value - max) / 6000.0);
+}
+
+//set the volume from a floating point number 0..1
+void set_normalized_volume(snd_mixer_elem_t *elem, double volume)
+{
+    long min, max, value;
+    int err;
+
+    if(volume < 0.017170)
+	volume = 0.017170;
+    else if (volume > 1.0)
+	volume = 1.0;
+
+    err = snd_mixer_selem_get_playback_dB_range(elem, &min, &max);
+    if(err < 0)
+    {
+        printf("Error setting volume\n");
+	return;
+    }
+
+    //Perceived 'loudness' does not scale linearly with the actual decible level
+    //it scales logarithmically
+    value = lrint(6000.0 * log10(volume)) + max;
+    snd_mixer_selem_set_playback_dB(elem, 0, value, 0);
+}
+
 void print_vol_bar(snd_mixer_elem_t *elem,struct lcd lcd)
 {
-    long min, max, vol;
-    snd_mixer_selem_get_playback_volume_range(elem, &min, &max);
-    snd_mixer_selem_get_playback_volume(elem,0,&vol);
-
-    int volp = rint(((double)(vol - min) / (double)(max - min)) * 16);
+    int volbar_length = rint(get_normalized_volume(elem) * (double)LCD_WIDTH);
     char volbar[LCD_WIDTH];
 
     int idx = 0;
-    for(;idx<volp;idx++)
+    for(;idx<volbar_length;idx++)
         volbar[idx] = '=';
     for(;idx<LCD_WIDTH;idx++)
         volbar[idx] = '_';
@@ -243,6 +289,7 @@ void set_mute_indicator(struct led mute_indicator)
         light_led_color(mute_indicator, LED_COLOR_GREEN);
 }
 
+
 int main()
 {
     printf("Starting...\n");
@@ -316,10 +363,9 @@ int main()
             int chn = 0;
             for(; chn <= SND_MIXER_SCHN_LAST; chn++)
             {
-		printf("Changing volume: %d\n", change);
-                long orig;
-                snd_mixer_selem_get_playback_dB(elem,chn,&orig);
-                snd_mixer_selem_set_playback_dB(elem,chn,orig + (change * 6),0);
+		double vol = get_normalized_volume(elem);
+		printf("Changing volume: %f\n", vol + (change * 0.0013021));
+		set_normalized_volume(elem, vol + (change * 0.0013021));
             }
             oldvalue = vol_selector->value;
         }
@@ -344,7 +390,14 @@ int main()
 	    {
 		printf("Stopping Player\n");
 		piLock(MPD_LOCK);
+		//Stop player
 		mpd_run_stop(connection);
+
+		//Set "current song" to the song that was being played
+        	struct mpd_song *song = mpd_run_current_song(connection);
+		current_song = mpd_song_get_pos(song);
+		mpd_song_free(song);
+
 		piUnlock(MPD_LOCK);
 		button_timer = time(NULL);
 	    }
