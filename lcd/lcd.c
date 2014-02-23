@@ -59,10 +59,11 @@ void lcd_string(struct lcd lcd, const char *message, int line)
         printf("error: bad line number: %i", line);
 
     int idx = 0;
-    for(;message[idx] != '\0' && idx < LCD_WIDTH; idx++)
-        lcd_byte(lcd, message[idx],LCD_CHR);
+    if (message != NULL)
+    	for(;message[idx] != '\0' && idx < LCD_WIDTH; idx++)
+      	    lcd_byte(lcd, message[idx],LCD_CHR);
     for(;idx < LCD_WIDTH; idx++)
-        lcd_byte(lcd, ' ',LCD_CHR);
+    	lcd_byte(lcd, ' ',LCD_CHR);
 }
 
 void lcd_wrapped_string(struct lcd lcd, const char *message)
